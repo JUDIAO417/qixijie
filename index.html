@@ -64,18 +64,18 @@
             cursor: pointer;
             border-radius: 16px;
             padding: 4px;
-            background: rgba(255, 255, 255, 0.05);
-            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.15);
-            backdrop-filter: blur(2px);
+            background: rgba(255, 255, 255, 0.06);
+            box-shadow: 0 4px 20px rgba(255, 182, 193, 0.2);
+            backdrop-filter: blur(3px);
             transition: transform 0.3s ease;
             opacity: 0;
         }
 
         .meteor-photo img {
             display: block;
-            width: 85px; 
+            width: 95px; /* 黄金比例适中尺寸 */
             height: auto;
-            border-radius: 14px;
+            border-radius: 13px;
             object-fit: cover;
             pointer-events: none;
         }
@@ -94,7 +94,7 @@
             text-align: center;
             font-size: 13px;
             letter-spacing: 1.5px;
-            color: rgba(255, 255, 255, 0.5);
+            color: rgba(255, 255, 255, 0.6);
             z-index: 3;
             pointer-events: none;
             text-shadow: 0 1px 3px rgba(0,0,0,0.3);
@@ -164,7 +164,7 @@
             top: 10px;
             left: 15px;
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.25);
             z-index: 4;
             pointer-events: none;
             letter-spacing: 1px;
@@ -299,12 +299,14 @@
         const REPO_NAME = "qixijie";
 
         let photoUrls = [];
-        const VISIBLE_COUNT = 8; 
-        const DURATION_MIN = 11;
-        const DURATION_MAX = 16;
+        
+        // 【核心优化】将同屏数量从 8 张提升至 16 张，让画面丰富饱满不稀疏
+        const VISIBLE_COUNT = 16; 
+        const DURATION_MIN = 12;
+        const DURATION_MAX = 18;
         
         const photoCooldownMap = {}; 
-        const COOLDOWN_TIME = 30 * 1000; // 30秒防重复冷却
+        const COOLDOWN_TIME = 20 * 1000; // 冷却时间缩短至20秒，轮换更频繁
 
         const meteorsContainer = document.getElementById('meteors-container');
         const styleSheet = document.styleSheets[0];
@@ -312,7 +314,7 @@
 
         // 星空背景初始化
         const starfield = document.getElementById('starfield');
-        for (let i = 0; i < 35; i++) {
+        for (let i = 0; i < 45; i++) {
             const star = document.createElement('div');
             star.className = 'bg-star';
             star.style.top = Math.random() * 100 + '%';
@@ -324,15 +326,13 @@
             starfield.appendChild(star);
         }
 
-        // 智能获取 zp 文件夹照片，并进行严格的【数字大小自然排序】
+        // 智能获取 zp 文件夹照片并数字排序
         async function fetchPhotosFromGitHub() {
             try {
                 const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/zp`;
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
-                    
-                    // 提取所有图片文件并按数字大小精准排序（例如 2.jpg 排在 10.jpg 前面）
                     photoUrls = data
                         .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
                         .sort((a, b) => {
@@ -346,7 +346,6 @@
                 console.log("API fetch failed");
             }
 
-            // 兜底保护
             if (photoUrls.length === 0) {
                 for (let i = 1; i <= 20; i++) {
                     photoUrls.push(`./zp/${i}.jpg`);
@@ -383,21 +382,22 @@
                 photoPool.push(item);
             }
 
+            // 【优化】均匀错开 16 张照片的初始登场时间，避免拥挤或空白
             photoPool.forEach((item, index) => {
-                const delay = (index * (DURATION_MAX / VISIBLE_COUNT)) * 1000;
+                const delay = (index * (DURATION_MAX / VISIBLE_COUNT) * 0.6) * 1000;
                 setTimeout(() => {
-                    assignNextSmartPhoto(item);
+                    assignNextSmartPhoto(item, true); // 第一次赋予随机初始位置
                 }, delay);
 
                 item.addEventListener('animationend', (e) => {
                     if (e.animationName.startsWith('meteorMove_')) {
-                        assignNextSmartPhoto(item);
+                        assignNextSmartPhoto(item, false);
                     }
                 });
             });
         }
 
-        function assignNextSmartPhoto(item) {
+        function assignNextSmartPhoto(item, isInitial) {
             const now = Date.now();
             let availablePhotos = photoUrls.filter(url => {
                 const lastTime = photoCooldownMap[url] || 0;
@@ -411,10 +411,10 @@
             const randomUrl = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
             photoCooldownMap[randomUrl] = Date.now();
 
-            assignAndAnimate(item, randomUrl);
+            assignAndAnimate(item, randomUrl, isInitial);
         }
 
-        function assignAndAnimate(item, url) {
+        function assignAndAnimate(item, url, isInitial) {
             const img = item.querySelector('img');
             img.src = url;
             img.setAttribute('data-src', url);
@@ -423,23 +423,28 @@
             void item.offsetWidth;
 
             const duration = Math.random() * (DURATION_MAX - DURATION_MIN) + DURATION_MIN;
-            const startX = Math.random() * 90;
-            const startY = -30 - Math.random() * 10;
-            const endX = startX + (Math.random() * 40 - 20);
+            
+            // 【优化】让横向分布更均匀，覆盖整个屏幕宽度
+            const startX = Math.random() * 95 - 5; 
+            const startY = isInitial ? (Math.random() * 80 - 10) : (-30 - Math.random() * 10);
+            const endX = startX + (Math.random() * 30 - 15);
             const endY = 115;
-            const rotate = Math.random() * 10 - 5;
+            const rotate = Math.random() * 14 - 7; // ±7度轻微倾斜，更自然
 
             const animName = `meteorMove_${Math.random().toString(36).substr(2, 9)}`;
             const keyframes = `
                 @keyframes ${animName} {
-                    0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: 0; }
+                    0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: ${isInitial ? 1 : 0}; }
                     15% { opacity: 1; }
                     85% { opacity: 1; }
-                    100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 3}deg); opacity: 0; }
+                    100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 4}deg); opacity: 0; }
                 }
             `;
             styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
-            item.style.animation = `${animName} ${duration}s linear infinite`;
+            
+            // 如果是初始加载，赋予缩短的动画时长让画面立刻丰富
+            const activeDuration = isInitial ? (duration * (Math.random() * 0.5 + 0.5)) : duration;
+            item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
 
         // 弹窗逻辑
