@@ -73,7 +73,7 @@
 
         .meteor-photo img {
             display: block;
-            width: 95px; /* 黄金比例适中尺寸 */
+            width: 95px; 
             height: auto;
             border-radius: 13px;
             object-fit: cover;
@@ -159,15 +159,21 @@
             50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7); }
         }
 
-        .top-corner-text {
+        /* 左上角可点击跳转的链接样式（保留极淡视觉） */
+        .top-corner-link {
             position: fixed;
             top: 10px;
             left: 15px;
             font-size: 11px;
-            color: rgba(255, 255, 255, 0.25);
-            z-index: 4;
-            pointer-events: none;
+            color: rgba(255, 255, 255, 0.35);
+            z-index: 10;
+            text-decoration: none;
             letter-spacing: 1px;
+            transition: color 0.3s;
+        }
+
+        .top-corner-link:hover {
+            color: rgba(255, 255, 255, 0.8);
         }
 
         /* 音乐悬浮部件 */
@@ -269,7 +275,10 @@
 
     <div class="starfield" id="starfield"></div>
     <canvas id="particle-canvas"></canvas>
-    <div class="top-corner-text">七夕致我们</div>
+    
+    <!-- 左上角可点击跳转的超链接 -->
+    <a href="https://qxjscgj1.vercel.app/" class="top-corner-link" target="_blank">七夕致我们</a>
+
     <div id="meteors-container"></div>
     <div class="footer-quote">愿我们岁岁年年，共赏浩瀚星河。</div>
 
@@ -299,14 +308,12 @@
         const REPO_NAME = "qixijie";
 
         let photoUrls = [];
-        
-        // 【核心优化】将同屏数量从 8 张提升至 16 张，让画面丰富饱满不稀疏
         const VISIBLE_COUNT = 16; 
         const DURATION_MIN = 12;
         const DURATION_MAX = 18;
         
         const photoCooldownMap = {}; 
-        const COOLDOWN_TIME = 20 * 1000; // 冷却时间缩短至20秒，轮换更频繁
+        const COOLDOWN_TIME = 20 * 1000;
 
         const meteorsContainer = document.getElementById('meteors-container');
         const styleSheet = document.styleSheets[0];
@@ -326,7 +333,6 @@
             starfield.appendChild(star);
         }
 
-        // 智能获取 zp 文件夹照片并数字排序
         async function fetchPhotosFromGitHub() {
             try {
                 const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/zp`;
@@ -382,11 +388,10 @@
                 photoPool.push(item);
             }
 
-            // 【优化】均匀错开 16 张照片的初始登场时间，避免拥挤或空白
             photoPool.forEach((item, index) => {
                 const delay = (index * (DURATION_MAX / VISIBLE_COUNT) * 0.6) * 1000;
                 setTimeout(() => {
-                    assignNextSmartPhoto(item, true); // 第一次赋予随机初始位置
+                    assignNextSmartPhoto(item, true);
                 }, delay);
 
                 item.addEventListener('animationend', (e) => {
@@ -423,13 +428,11 @@
             void item.offsetWidth;
 
             const duration = Math.random() * (DURATION_MAX - DURATION_MIN) + DURATION_MIN;
-            
-            // 【优化】让横向分布更均匀，覆盖整个屏幕宽度
             const startX = Math.random() * 95 - 5; 
             const startY = isInitial ? (Math.random() * 80 - 10) : (-30 - Math.random() * 10);
             const endX = startX + (Math.random() * 30 - 15);
             const endY = 115;
-            const rotate = Math.random() * 14 - 7; // ±7度轻微倾斜，更自然
+            const rotate = Math.random() * 14 - 7;
 
             const animName = `meteorMove_${Math.random().toString(36).substr(2, 9)}`;
             const keyframes = `
@@ -442,7 +445,6 @@
             `;
             styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
             
-            // 如果是初始加载，赋予缩短的动画时长让画面立刻丰富
             const activeDuration = isInitial ? (duration * (Math.random() * 0.5 + 0.5)) : duration;
             item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
