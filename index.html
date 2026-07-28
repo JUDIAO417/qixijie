@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>七夕致我们</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(135deg, #2c2436 0%, #4b3858 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: #fff;
+        }
+
+        /* 静态星光背景 */
+        .starfield {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .bg-star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: twinkle 3s infinite ease-in-out;
+        }
+
+        @keyframes twinkle {
+            0%, 100% {
+                opacity: 0.2;
+                transform: scale(0.8);
+            }
+
+            50% {
+                opacity: 0.7;
+                transform: scale(1.2);
+            }
+        }
+
+        /* 流星雨照片容器 */
+        #meteors-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .meteor-photo {
+            position: absolute;
+            will-change: transform, opacity;
+            pointer-events: auto;
+            cursor: pointer;
+            border-radius: 16px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 15px rgba(255, 182, 193, 0.15);
+            backdrop-filter: blur(2px);
+            transition: transform 0.3s ease;
+            opacity: 0;
+        }
+
+            .meteor-photo img {
+                display: block;
+                width: 85px;
+                height: auto;
+                border-radius: 14px;
+                object-fit: cover;
+                pointer-events: none;
+            }
+
+            .meteor-photo.paused {
+                animation-play-state: paused !important;
+                opacity: 1 !important;
+            }
+
+        /* 底部告白文案 */
+        .footer-quote {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            letter-spacing: 1.5px;
+            color: rgba(255, 255, 255, 0.5);
+            z-index: 3;
+            pointer-events: none;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+
+        /* 全屏引导蒙层与按钮 */
+        #fullscreen-tip {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(44, 36, 54, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+            backdrop-filter: blur(8px);
+        }
+
+        .tip-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 30px 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+            max-width: 85%;
+        }
+
+            .tip-card h2 {
+                font-size: 18px;
+                color: #ffccd5;
+                margin-bottom: 10px;
+                letter-spacing: 2px;
+            }
+
+            .tip-card p {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-bottom: 25px;
+                line-height: 1.5;
+            }
+
+        .enter-btn {
+            background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+            color: #fff;
+            border: none;
+            padding: 12px 30px;
+            font-size: 15px;
+            border-radius: 30px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4);
+            animation: pulseBtn 2s infinite ease-in-out;
+        }
+
+        @keyframes pulseBtn {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4);
+            }
+
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7);
+            }
+        }
+
+        .top-corner-text {
+            position: fixed;
+            top: 10px;
+            left: 15px;
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.2);
+            z-index: 4;
+            pointer-events: none;
+            letter-spacing: 1px;
+        }
+
+        /* 音乐悬浮部件 */
+        .music-btn {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            width: 38px;
+            height: 38px;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+        }
+
+            .music-btn.playing {
+                animation: rotateVinyl 4s linear infinite;
+            }
+
+        @keyframes rotateVinyl {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .music-btn svg {
+            width: 16px;
+            height: 16px;
+            fill: #fff;
+        }
+
+        /* 弹窗看图 */
+        #modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 15, 25, 0.95);
+            z-index: 500;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+            #modal.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+        .modal-content-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-image {
+            max-width: 92%;
+            max-height: 85vh;
+            border-radius: 12px;
+            object-fit: contain;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.6);
+        }
+
+        .modal-tip {
+            position: absolute;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.4);
+            letter-spacing: 1px;
+            pointer-events: none;
+        }
+
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 99;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="starfield" id="starfield"></div>
+    <canvas id="particle-canvas"></canvas>
+    <div class="top-corner-text">七夕致我们</div>
+    <div id="meteors-container"></div>
+    <div class="footer-quote">愿我们岁岁年年，共赏浩瀚星河。</div>
+
+    <div class="music-btn" id="music-btn" title="音乐开关">
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+    </div>
+
+    <div id="fullscreen-tip">
+        <div class="tip-card">
+            <h2>✨ 七夕浪漫星河 ✨</h2>
+            <p>点击下方按钮开启全屏观赏与背景音乐</p>
+            <button class="enter-btn" id="enter-btn">开启浪漫之旅</button>
+        </div>
+    </div>
+
+    <div id="modal">
+        <div class="modal-content-wrapper" id="modal-wrapper">
+            <img class="modal-image" id="modal-img" src="" alt="Photo">
+            <div class="modal-tip">左滑/右滑切换 · 点击空白关闭</div>
+        </div>
+    </div>
+
+    <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
+
+    <script>
+        let photoUrls = [];
+        const VISIBLE_COUNT = 8;
+        const DURATION_MIN = 11;
+        const DURATION_MAX = 16;
+
+        // 记录每张照片最近一次显示的时间戳，实现 30 秒冷却防重复机制
+        const photoCooldownMap = {};
+        const COOLDOWN_TIME = 30 * 1000; // 30秒
+
+        const meteorsContainer = document.getElementById('meteors-container');
+        const styleSheet = document.styleSheets[0];
+        const photoPool = [];
+
+        // 星空背景初始化
+        const starfield = document.getElementById('starfield');
+        for (let i = 0; i < 35; i++) {
+            const star = document.createElement('div');
+            star.className = 'bg-star';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.left = Math.random() * 100 + '%';
+            const size = Math.random() * 1.5 + 0.5 + 'px';
+            star.style.width = size;
+            star.style.height = size;
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starfield.appendChild(star);
+        }
+
+        // 【智能连号自动检测程序】从 1.jpg 开始连续探测，直到遇到断开为止
+        function autoDetectNumberedPhotos() {
+            let i = 1;
+            function checkNext() {
+                const url = `./zp/${i}.jpg`;
+                const img = new Image();
+
+                img.onload = function () {
+                    photoUrls.push(url);
+                    i++;
+                    checkNext(); // 继续探测下一张
+                };
+
+                img.onerror = function () {
+                    // 说明当前编号的图片不存在了，探测结束，正式初始化流星雨
+                    if (photoUrls.length === 0) {
+                        photoUrls.push("./zp/1.jpg"); // 兜底保护
+                    }
+                    initMeteorRain();
+                };
+
+                img.src = url;
+            }
+            checkNext();
+        }
+
+        autoDetectNumberedPhotos();
+
+        let currentModalIndex = 0;
+
+        function initMeteorRain() {
+            if (window.isMeteorInitialized) return;
+            window.isMeteorInitialized = true;
+
+            // 预创建图片节点池
+            for (let i = 0; i < VISIBLE_COUNT; i++) {
+                const item = document.createElement('div');
+                item.className = 'meteor-photo';
+                const img = document.createElement('img');
+                img.loading = 'lazy';
+                item.appendChild(img);
+                item.addEventListener('contextmenu', e => e.preventDefault());
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const currentUrl = img.getAttribute('data-src');
+                    const realIndex = photoUrls.indexOf(currentUrl);
+                    openModal(realIndex !== -1 ? realIndex : 0);
+                });
+
+                meteorsContainer.appendChild(item);
+                photoPool.push(item);
+            }
+
+            // 启动流星雨循环，错开初始时间
+            photoPool.forEach((item, index) => {
+                const delay = (index * (DURATION_MAX / VISIBLE_COUNT)) * 1000;
+                setTimeout(() => {
+                    assignNextSmartPhoto(item);
+                }, delay);
+
+                item.addEventListener('animationend', (e) => {
+                    if (e.animationName.startsWith('meteorMove_')) {
+                        assignNextSmartPhoto(item);
+                    }
+                });
+            });
+        }
+
+        // 智能获取一张符合 30 秒冷却限制且不重复的照片
+        function assignNextSmartPhoto(item) {
+            const now = Date.now();
+
+            // 筛选出不在 30 秒冷却期内的候选照片
+            let availablePhotos = photoUrls.filter(url => {
+                const lastTime = photoCooldownMap[url] || 0;
+                return (now - lastTime) > COOLDOWN_TIME;
+            });
+
+            // 如果所有照片都在冷却期内（照片总数太少），则退化为在所有照片中随机挑选一张
+            if (availablePhotos.length === 0) {
+                availablePhotos = photoUrls;
+            }
+
+            // 随机挑选一张
+            const randomUrl = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
+
+            // 记录当前显示的时间戳
+            photoCooldownMap[randomUrl] = Date.now();
+
+            assignAndAnimate(item, randomUrl);
+        }
+
+        function assignAndAnimate(item, url) {
+            const img = item.querySelector('img');
+            img.src = url;
+            img.setAttribute('data-src', url);
+
+            item.style.animation = 'none';
+            void item.offsetWidth;
+
+            const duration = Math.random() * (DURATION_MAX - DURATION_MIN) + DURATION_MIN;
+            const startX = Math.random() * 90;
+            const startY = -30 - Math.random() * 10;
+            const endX = startX + (Math.random() * 40 - 20);
+            const endY = 115;
+            const rotate = Math.random() * 10 - 5;
+
+            const animName = `meteorMove_${Math.random().toString(36).substr(2, 9)}`;
+            const keyframes = `
+                    @keyframes ${animName} {
+                        0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: 0; }
+                        15% { opacity: 1; }
+                        85% { opacity: 1; }
+                        100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 3}deg); opacity: 0; }
+                    }
+                `;
+            styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+            item.style.animation = `${animName} ${duration}s linear infinite`;
+        }
+
+        // 弹窗逻辑
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modal-img');
+
+        function openModal(index) {
+            currentModalIndex = index;
+            modalImg.src = photoUrls[index];
+            modal.classList.add('active');
+            document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            document.querySelectorAll('.meteor-photo').forEach(el => el.classList.remove('paused'));
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.id === 'modal-wrapper') closeModal();
+        });
+
+        // 左右滑动
+        let touchStartX = 0;
+        modal.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        modal.addEventListener('touchend', e => {
+            let diff = e.changedTouches[0].screenX - touchStartX;
+            if (diff < -50) {
+                currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
+                modalImg.src = photoUrls[currentModalIndex];
+            } else if (diff > 50) {
+                currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
+                modalImg.src = photoUrls[currentModalIndex];
+            }
+        }, { passive: true });
+
+        // 全屏按钮绑定事件
+        const fullscreenTip = document.getElementById('fullscreen-tip');
+        const enterBtn = document.getElementById('enter-btn');
+        const musicBtn = document.getElementById('music-btn');
+        const bgm = document.getElementById('bgm');
+        let isMusicPlaying = false;
+
+        function unlockExperience(e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            fullscreenTip.style.opacity = '0';
+            setTimeout(() => fullscreenTip.remove(), 500);
+
+            const docEl = document.documentElement;
+            const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
+            if (requestFS) {
+                requestFS.call(docEl).catch(err => console.log("Fullscreen denied:", err));
+            }
+
+            if (!isMusicPlaying) {
+                bgm.volume = 0.25;
+                bgm.play().then(() => {
+                    isMusicPlaying = true;
+                    musicBtn.classList.add('playing');
+                }).catch(err => console.log("Audio play error:", err));
+            }
+        }
+
+        enterBtn.addEventListener('click', unlockExperience);
+        enterBtn.addEventListener('touchend', unlockExperience);
+
+        musicBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (isMusicPlaying) {
+                bgm.pause();
+                isMusicPlaying = false;
+                musicBtn.classList.remove('playing');
+            } else {
+                bgm.volume = 0.25;
+                bgm.play().then(() => {
+                    isMusicPlaying = true;
+                    musicBtn.classList.add('playing');
+                });
+            }
+        });
+
+        // 彩蛋双指爱心
+        const canvas = document.getElementById('particle-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        document.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                for (let i = 0; i < 25; i++) {
+                    particles.push({
+                        x: window.innerWidth / 2, y: window.innerHeight / 2,
+                        size: Math.random() * 8 + 6,
+                        speedX: (Math.random() - 0.5) * 6,
+                        speedY: (Math.random() - 0.5) * 6 - 2,
+                        opacity: 1, color: Math.random() > 0.5 ? '#ffb6c1' : '#ff69b4',
+                        life: Math.random() * 40 + 40
+                    });
+                }
+                if (isMusicPlaying) {
+                    bgm.volume = 0.4;
+                    setTimeout(() => { if (isMusicPlaying) bgm.volume = 0.25; }, 3000);
+                }
+            }
+        });
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.x += p.speedX; p.y += p.speedY; p.opacity -= 1 / p.life;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.opacity);
+                ctx.fillStyle = p.color;
+                ctx.font = `${p.size}px sans-serif`;
+                ctx.fillText('❤', p.x, p.y);
+                ctx.restore();
+                if (p.opacity <= 0) particles.splice(index, 1);
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+    </script>
+</body>
+</html>
