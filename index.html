@@ -42,15 +42,8 @@
         }
 
         @keyframes twinkle {
-            0%, 100% {
-                opacity: 0.2;
-                transform: scale(0.8);
-            }
-
-            50% {
-                opacity: 0.7;
-                transform: scale(1.2);
-            }
+            0%, 100% { opacity: 0.2; transform: scale(0.8); }
+            50% { opacity: 0.7; transform: scale(1.2); }
         }
 
         /* 流星雨照片容器 */
@@ -78,19 +71,19 @@
             opacity: 0;
         }
 
-            .meteor-photo img {
-                display: block;
-                width: 85px;
-                height: auto;
-                border-radius: 14px;
-                object-fit: cover;
-                pointer-events: none;
-            }
+        .meteor-photo img {
+            display: block;
+            width: 85px; 
+            height: auto;
+            border-radius: 14px;
+            object-fit: cover;
+            pointer-events: none;
+        }
 
-            .meteor-photo.paused {
-                animation-play-state: paused !important;
-                opacity: 1 !important;
-            }
+        .meteor-photo.paused {
+            animation-play-state: paused !important;
+            opacity: 1 !important;
+        }
 
         /* 底部告白文案 */
         .footer-quote {
@@ -134,19 +127,19 @@
             max-width: 85%;
         }
 
-            .tip-card h2 {
-                font-size: 18px;
-                color: #ffccd5;
-                margin-bottom: 10px;
-                letter-spacing: 2px;
-            }
+        .tip-card h2 {
+            font-size: 18px;
+            color: #ffccd5;
+            margin-bottom: 10px;
+            letter-spacing: 2px;
+        }
 
-            .tip-card p {
-                font-size: 12px;
-                color: rgba(255, 255, 255, 0.6);
-                margin-bottom: 25px;
-                line-height: 1.5;
-            }
+        .tip-card p {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
 
         .enter-btn {
             background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
@@ -162,15 +155,8 @@
         }
 
         @keyframes pulseBtn {
-            0%, 100% {
-                transform: scale(1);
-                box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4);
-            }
-
-            50% {
-                transform: scale(1.05);
-                box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7);
-            }
+            0%, 100% { transform: scale(1); box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7); }
         }
 
         .top-corner-text {
@@ -202,18 +188,13 @@
             cursor: pointer;
         }
 
-            .music-btn.playing {
-                animation: rotateVinyl 4s linear infinite;
-            }
+        .music-btn.playing {
+            animation: rotateVinyl 4s linear infinite;
+        }
 
         @keyframes rotateVinyl {
-            from {
-                transform: rotate(0deg);
-            }
-
-            to {
-                transform: rotate(360deg);
-            }
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
 
         .music-btn svg {
@@ -239,10 +220,10 @@
             transition: opacity 0.3s ease;
         }
 
-            #modal.active {
-                opacity: 1;
-                pointer-events: auto;
-            }
+        #modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
 
         .modal-content-wrapper {
             position: relative;
@@ -293,7 +274,7 @@
     <div class="footer-quote">愿我们岁岁年年，共赏浩瀚星河。</div>
 
     <div class="music-btn" id="music-btn" title="音乐开关">
-        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" /></svg>
+        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
     </div>
 
     <div id="fullscreen-tip">
@@ -314,14 +295,16 @@
     <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
 
     <script>
+        const GITHUB_USER = "JUDIAO417";
+        const REPO_NAME = "qixijie";
+
         let photoUrls = [];
-        const VISIBLE_COUNT = 8;
+        const VISIBLE_COUNT = 8; 
         const DURATION_MIN = 11;
         const DURATION_MAX = 16;
-
-        // 记录每张照片最近一次显示的时间戳，实现 30 秒冷却防重复机制
-        const photoCooldownMap = {};
-        const COOLDOWN_TIME = 30 * 1000; // 30秒
+        
+        const photoCooldownMap = {}; 
+        const COOLDOWN_TIME = 30 * 1000; // 30秒防重复冷却
 
         const meteorsContainer = document.getElementById('meteors-container');
         const styleSheet = document.styleSheets[0];
@@ -341,33 +324,39 @@
             starfield.appendChild(star);
         }
 
-        // 【智能连号自动检测程序】从 1.jpg 开始连续探测，直到遇到断开为止
-        function autoDetectNumberedPhotos() {
-            let i = 1;
-            function checkNext() {
-                const url = `./zp/${i}.jpg`;
-                const img = new Image();
-
-                img.onload = function () {
-                    photoUrls.push(url);
-                    i++;
-                    checkNext(); // 继续探测下一张
-                };
-
-                img.onerror = function () {
-                    // 说明当前编号的图片不存在了，探测结束，正式初始化流星雨
-                    if (photoUrls.length === 0) {
-                        photoUrls.push("./zp/1.jpg"); // 兜底保护
-                    }
-                    initMeteorRain();
-                };
-
-                img.src = url;
+        // 智能获取 zp 文件夹照片，并进行严格的【数字大小自然排序】
+        async function fetchPhotosFromGitHub() {
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/zp`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    // 提取所有图片文件并按数字大小精准排序（例如 2.jpg 排在 10.jpg 前面）
+                    photoUrls = data
+                        .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
+                        .sort((a, b) => {
+                            let numA = parseInt(a.name) || 0;
+                            let numB = parseInt(b.name) || 0;
+                            return numA - numB;
+                        })
+                        .map(item => item.download_url);
+                }
+            } catch (err) {
+                console.log("API fetch failed");
             }
-            checkNext();
+
+            // 兜底保护
+            if (photoUrls.length === 0) {
+                for (let i = 1; i <= 20; i++) {
+                    photoUrls.push(`./zp/${i}.jpg`);
+                }
+            }
+
+            initMeteorRain();
         }
 
-        autoDetectNumberedPhotos();
+        fetchPhotosFromGitHub();
 
         let currentModalIndex = 0;
 
@@ -375,7 +364,6 @@
             if (window.isMeteorInitialized) return;
             window.isMeteorInitialized = true;
 
-            // 预创建图片节点池
             for (let i = 0; i < VISIBLE_COUNT; i++) {
                 const item = document.createElement('div');
                 item.className = 'meteor-photo';
@@ -383,7 +371,7 @@
                 img.loading = 'lazy';
                 item.appendChild(img);
                 item.addEventListener('contextmenu', e => e.preventDefault());
-
+                
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const currentUrl = img.getAttribute('data-src');
@@ -395,7 +383,6 @@
                 photoPool.push(item);
             }
 
-            // 启动流星雨循环，错开初始时间
             photoPool.forEach((item, index) => {
                 const delay = (index * (DURATION_MAX / VISIBLE_COUNT)) * 1000;
                 setTimeout(() => {
@@ -410,25 +397,18 @@
             });
         }
 
-        // 智能获取一张符合 30 秒冷却限制且不重复的照片
         function assignNextSmartPhoto(item) {
             const now = Date.now();
-
-            // 筛选出不在 30 秒冷却期内的候选照片
             let availablePhotos = photoUrls.filter(url => {
                 const lastTime = photoCooldownMap[url] || 0;
                 return (now - lastTime) > COOLDOWN_TIME;
             });
 
-            // 如果所有照片都在冷却期内（照片总数太少），则退化为在所有照片中随机挑选一张
             if (availablePhotos.length === 0) {
                 availablePhotos = photoUrls;
             }
 
-            // 随机挑选一张
             const randomUrl = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
-
-            // 记录当前显示的时间戳
             photoCooldownMap[randomUrl] = Date.now();
 
             assignAndAnimate(item, randomUrl);
@@ -451,13 +431,13 @@
 
             const animName = `meteorMove_${Math.random().toString(36).substr(2, 9)}`;
             const keyframes = `
-                    @keyframes ${animName} {
-                        0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: 0; }
-                        15% { opacity: 1; }
-                        85% { opacity: 1; }
-                        100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 3}deg); opacity: 0; }
-                    }
-                `;
+                @keyframes ${animName} {
+                    0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: 0; }
+                    15% { opacity: 1; }
+                    85% { opacity: 1; }
+                    100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 3}deg); opacity: 0; }
+                }
+            `;
             styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
             item.style.animation = `${animName} ${duration}s linear infinite`;
         }
@@ -484,7 +464,7 @@
 
         // 左右滑动
         let touchStartX = 0;
-        modal.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+        modal.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
         modal.addEventListener('touchend', e => {
             let diff = e.changedTouches[0].screenX - touchStartX;
             if (diff < -50) {
@@ -494,7 +474,7 @@
                 currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
                 modalImg.src = photoUrls[currentModalIndex];
             }
-        }, { passive: true });
+        }, {passive: true});
 
         // 全屏按钮绑定事件
         const fullscreenTip = document.getElementById('fullscreen-tip');
