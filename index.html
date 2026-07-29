@@ -159,7 +159,7 @@
             50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7); }
         }
 
-        /* 左上角可点击跳转的链接样式（保留极淡视觉） */
+        /* 左上角可点击跳转的链接样式 */
         .top-corner-link {
             position: fixed;
             top: 10px;
@@ -276,7 +276,6 @@
     <div class="starfield" id="starfield"></div>
     <canvas id="particle-canvas"></canvas>
     
-    <!-- 左上角可点击跳转的超链接 -->
     <a href="https://www.qixijieaini.top/admin.html" class="top-corner-link" target="_blank">七夕致我们</a>
 
     <div id="meteors-container"></div>
@@ -301,7 +300,8 @@
         </div>
     </div>
 
-    <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
+    <!-- 使用绝对 CDN 链接加载 BGM，100% 稳定出声 -->
+    <audio id="bgm" src="https://fastly.jsdelivr.net/gh/JUDIAO417/qixijie@main/yy/bgm.mp3" loop preload="auto"></audio>
 
     <script>
         const GITHUB_USER = "JUDIAO417";
@@ -335,7 +335,7 @@
 
         async function fetchPhotosFromGitHub() {
             try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl`;
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl?t=${Date.now()}`;
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
@@ -346,15 +346,16 @@
                             let numB = parseInt(b.name) || 0;
                             return numA - numB;
                         })
-                        .map(item => item.download_url);
+                        .map(item => `https://fastly.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@main/yl/${item.name}`);
                 }
             } catch (err) {
                 console.log("API fetch failed");
             }
 
+            // 绝对保底：如果 API 没开或者读不到，自动用 CDN 链接加载 1 到 120 张
             if (photoUrls.length === 0) {
-                for (let i = 1; i <= 20; i++) {
-                    photoUrls.push(`./yl/${i}.jpg`);
+                for (let i = 1; i <= 120; i++) {
+                    photoUrls.push(`https://fastly.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@main/yl/${i}.jpg`);
                 }
             }
 
@@ -449,13 +450,15 @@
             item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
 
-        // 弹窗逻辑
+        // 弹窗逻辑（点击看对应的高清原图 zp/）
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
 
         function openModal(index) {
             currentModalIndex = index;
-            modalImg.src = photoUrls[index];
+            // 自动将预览图链接转换为高清原图的 CDN 链接
+            let highResUrl = photoUrls[index].replace('/yl/', '/zp/');
+            modalImg.src = highResUrl;
             modal.classList.add('active');
             document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
         }
@@ -476,10 +479,10 @@
             let diff = e.changedTouches[0].screenX - touchStartX;
             if (diff < -50) {
                 currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
-                modalImg.src = photoUrls[currentModalIndex];
+                modalImg.src = photoUrls[currentModalIndex].replace('/yl/', '/zp/');
             } else if (diff > 50) {
                 currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
-                modalImg.src = photoUrls[currentModalIndex];
+                modalImg.src = photoUrls[currentModalIndex].replace('/yl/', '/zp/');
             }
         }, {passive: true});
 
