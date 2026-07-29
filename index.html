@@ -300,14 +300,15 @@
         </div>
     </div>
 
-    <!-- 使用绝对 CDN 链接加载 BGM，100% 稳定出声 -->
-    <audio id="bgm" src="https://fastly.jsdelivr.net/gh/JUDIAO417/qixijie@main/yy/bgm.mp3" loop preload="auto"></audio>
+    <!-- 本地相对路径 BGM -->
+    <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
 
     <script>
         const GITHUB_USER = "JUDIAO417";
         const REPO_NAME = "qixijie";
 
         let photoUrls = [];
+        let highResUrls = []; // 对应原图列表
         const VISIBLE_COUNT = 16; 
         const DURATION_MIN = 12;
         const DURATION_MAX = 18;
@@ -333,29 +334,34 @@
             starfield.appendChild(star);
         }
 
+        // 核心：利用公开仓库的 GitHub API 动态获取目录，并直接映射为本地纯相对路径
         async function fetchPhotosFromGitHub() {
             try {
                 const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl?t=${Date.now()}`;
                 const res = await fetch(url);
                 if (res.ok) {
                     const data = await res.json();
-                    photoUrls = data
+                    const sortedFiles = data
                         .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
                         .sort((a, b) => {
                             let numA = parseInt(a.name) || 0;
                             let numB = parseInt(b.name) || 0;
                             return numA - numB;
-                        })
-                        .map(item => `https://fastly.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@main/yl/${item.name}`);
+                        });
+
+                    // 纯本地相对路径映射：预览图用 ./yl/文件名，原图用 ./zp/文件名
+                    photoUrls = sortedFiles.map(item => `./yl/${item.name}`);
+                    highResUrls = sortedFiles.map(item => `./zp/${item.name}`);
                 }
             } catch (err) {
                 console.log("API fetch failed");
             }
 
-            // 绝对保底：如果 API 没开或者读不到，自动用 CDN 链接加载 1 到 120 张
+            // 绝对保底：如果 API 没读到，自动按本地 1 到 120 张相对路径保底
             if (photoUrls.length === 0) {
                 for (let i = 1; i <= 120; i++) {
-                    photoUrls.push(`https://fastly.jsdelivr.net/gh/${GITHUB_USER}/${REPO_NAME}@main/yl/${i}.jpg`);
+                    photoUrls.push(`./yl/${i}.jpg`);
+                    highResUrls.push(`./zp/${i}.jpg`);
                 }
             }
 
@@ -450,15 +456,13 @@
             item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
 
-        // 弹窗逻辑（点击看对应的高清原图 zp/）
+        // 弹窗逻辑（点击查看对应的高清原图 zp/）
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
 
         function openModal(index) {
             currentModalIndex = index;
-            // 自动将预览图链接转换为高清原图的 CDN 链接
-            let highResUrl = photoUrls[index].replace('/yl/', '/zp/');
-            modalImg.src = highResUrl;
+            modalImg.src = highResUrls[index] || photoUrls[index];
             modal.classList.add('active');
             document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
         }
@@ -479,10 +483,10 @@
             let diff = e.changedTouches[0].screenX - touchStartX;
             if (diff < -50) {
                 currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
-                modalImg.src = photoUrls[currentModalIndex].replace('/yl/', '/zp/');
+                modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
             } else if (diff > 50) {
                 currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
-                modalImg.src = photoUrls[currentModalIndex].replace('/yl/', '/zp/');
+                modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
             }
         }, {passive: true});
 
