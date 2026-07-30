@@ -159,7 +159,7 @@
             50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7); }
         }
 
-        /* 左上角可点击跳转的链接样式 */
+        /* 左上角可点击跳转的链接样式（保留极淡视觉） */
         .top-corner-link {
             position: fixed;
             top: 10px;
@@ -276,10 +276,11 @@
     <div class="starfield" id="starfield"></div>
     <canvas id="particle-canvas"></canvas>
     
-    <a href="https://xiaoguotu.cn-nb1.rains3.com/admin.html" class="top-corner-link" target="_blank">七夕致我们</a>
+    <!-- 左上角可点击跳转的超链接 -->
+    <a href="https://www.qixijieaini.top/admin.html" class="top-corner-link" target="_blank">七夕致我们</a>
 
     <div id="meteors-container"></div>
-    <div class="footer-quote">岁岁年年，永远相伴。</div>
+    <div class="footer-quote">愿我们岁岁年年，共赏浩瀚星河。</div>
 
     <div class="music-btn" id="music-btn" title="音乐开关">
         <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
@@ -300,7 +301,6 @@
         </div>
     </div>
 
-    <!-- 本地相对路径 BGM -->
     <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
 
     <script>
@@ -308,7 +308,7 @@
         const REPO_NAME = "qixijie";
 
         let photoUrls = [];
-        let highResUrls = []; // 对应原图列表
+        let highResUrls = []; // 对应原图列表（支持点开看高清原图 zp/ 文件夹）
         const VISIBLE_COUNT = 16; 
         const DURATION_MIN = 12;
         const DURATION_MAX = 18;
@@ -334,41 +334,18 @@
             starfield.appendChild(star);
         }
 
-        // 核心：利用公开仓库的 GitHub API 动态获取目录，并直接映射为本地纯相对路径
-        async function fetchPhotosFromGitHub() {
-            try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl?t=${Date.now()}`;
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    const sortedFiles = data
-                        .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
-                        .sort((a, b) => {
-                            let numA = parseInt(a.name) || 0;
-                            let numB = parseInt(b.name) || 0;
-                            return numA - numB;
-                        });
-
-                    // 纯本地相对路径映射：预览图用 ./yl/文件名，原图用 ./zp/文件名
-                    photoUrls = sortedFiles.map(item => `./yl/${item.name}`);
-                    highResUrls = sortedFiles.map(item => `./zp/${item.name}`);
-                }
-            } catch (err) {
-                console.log("API fetch failed");
+        // 核心修改：针对 900+ 张照片设计的安全加载机制
+        // 采用编号序列生成器，支持 1 到 900 张照片秒开、无 API 数量限制、杜绝白屏
+        function initPhotoList() {
+            const MAX_PHOTOS = 900; // 你以后如果超过900，把这里改大即可
+            for (let i = 1; i <= MAX_PHOTOS; i++) {
+                photoUrls.push(`./yl/${i}.jpg`);
+                highResUrls.push(`./zp/${i}.jpg`);
             }
-
-            // 绝对保底：如果 API 没读到，自动按本地 1 到 120 张相对路径保底
-            if (photoUrls.length === 0) {
-                for (let i = 1; i <= 120; i++) {
-                    photoUrls.push(`./yl/${i}.jpg`);
-                    highResUrls.push(`./zp/${i}.jpg`);
-                }
-            }
-
             initMeteorRain();
         }
 
-        fetchPhotosFromGitHub();
+        initPhotoList();
 
         let currentModalIndex = 0;
 
@@ -431,6 +408,11 @@
             img.src = url;
             img.setAttribute('data-src', url);
 
+            // 容错保护：如果编号对应的照片还未上传，自动隐藏，绝对不影响其他照片流星雨飘落
+            img.onerror = () => {
+                img.style.display = 'none';
+            };
+
             item.style.animation = 'none';
             void item.offsetWidth;
 
@@ -456,13 +438,13 @@
             item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
 
-        // 弹窗逻辑（点击查看对应的高清原图 zp/）
+        // 弹窗逻辑（支持点开看原图 zp/ 文件夹的高清图）
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
 
         function openModal(index) {
-            currentModalIndex = index;
-            modalImg.src = highResUrls[index] || photoUrls[index];
+            currentModalIndex = index >= 0 ? index : 0;
+            modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
             modal.classList.add('active');
             document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
         }
@@ -476,16 +458,22 @@
             if (e.target === modal || e.target.id === 'modal-wrapper') closeModal();
         });
 
-        // 左右滑动
+        // 左右滑动切换照片逻辑修复
         let touchStartX = 0;
-        modal.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+        modal.addEventListener('touchstart', e => { 
+            touchStartX = e.changedTouches[0].screenX; 
+        }, {passive: true});
+
         modal.addEventListener('touchend', e => {
             let diff = e.changedTouches[0].screenX - touchStartX;
-            if (diff < -50) {
-                currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
-                modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
-            } else if (diff > 50) {
-                currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
+            if (Math.abs(diff) > 50) {
+                if (diff < 0) {
+                    // 向左滑动，下一张
+                    currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
+                } else {
+                    // 向右滑动，上一张
+                    currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
+                }
                 modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
             }
         }, {passive: true});
