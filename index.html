@@ -2,29 +2,29 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>七夕致我们</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>浪漫星河相册</title>
     <style>
+        /* 基础样式重置与防触控 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
             user-select: none;
         }
-
         body, html {
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background: linear-gradient(135deg, #2c2436 0%, #4b3858 100%);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #1a0b1c 0%, #3d1b38 50%, #5e294f 100%);
+            font-family: 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
             color: #fff;
         }
 
-        /* 静态星光背景 */
-        .starfield {
-            position: fixed;
+        /* 背景画布（星空与爱心特效） */
+        #bg-canvas, #fx-canvas {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
@@ -32,552 +32,768 @@
             pointer-events: none;
             z-index: 1;
         }
+        #fx-canvas {
+            z-index: 999;
+        }
 
-        .bg-star {
+        /* 顶部与底部固定信息 */
+        .fixed-ui {
             position: absolute;
-            background: #fff;
-            border-radius: 50%;
-            opacity: 0.3;
-            animation: twinkle 3s infinite ease-in-out;
+            z-index: 100;
+            text-shadow: 0 0 8px rgba(255, 182, 193, 0.8);
         }
-
-        @keyframes twinkle {
-            0%, 100% { opacity: 0.2; transform: scale(0.8); }
-            50% { opacity: 0.7; transform: scale(1.2); }
+        .top-left {
+            top: 20px;
+            left: 20px;
+            font-size: 16px;
         }
-
-        /* 流星雨照片容器 */
-        #meteors-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 2;
+        .top-left a {
+            color: #ffb6c1;
+            text-decoration: none;
+            display: inline-block;
+            padding: 6px 12px;
+            border: 1px solid rgba(255, 182, 193, 0.5);
+            border-radius: 15px;
+            background: rgba(255, 105, 180, 0.15);
+            backdrop-filter: blur(4px);
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.3);
+            transition: transform 0.2s;
         }
-
-        .meteor-photo {
-            position: absolute;
-            will-change: transform, opacity;
-            pointer-events: auto;
-            cursor: pointer;
-            border-radius: 16px;
-            padding: 4px;
-            background: rgba(255, 255, 255, 0.06);
-            box-shadow: 0 4px 20px rgba(255, 182, 193, 0.2);
-            backdrop-filter: blur(3px);
-            transition: transform 0.3s ease;
-            opacity: 0;
+        .top-left a:active {
+            transform: scale(0.95);
         }
-
-        .meteor-photo img {
-            display: block;
-            width: 95px; 
-            height: auto;
-            border-radius: 13px;
-            object-fit: cover;
-            pointer-events: none;
-        }
-
-        .meteor-photo.paused {
-            animation-play-state: paused !important;
-            opacity: 1 !important;
-        }
-
-        /* 底部告白文案 */
-        .footer-quote {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
+        .bottom-center {
+            bottom: 30px;
             width: 100%;
             text-align: center;
-            font-size: 13px;
-            letter-spacing: 1.5px;
-            color: rgba(255, 255, 255, 0.6);
-            z-index: 3;
-            pointer-events: none;
-            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            font-size: 14px;
+            letter-spacing: 2px;
+            color: #ffd1dc;
         }
 
-        /* 全屏引导蒙层与按钮 */
-        #fullscreen-tip {
-            position: fixed;
+        /* 照片墙弹窗 (Gallery Overlay) */
+        #gallery-overlay {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(44, 36, 54, 0.95);
+            background: rgba(26, 11, 28, 0.95);
+            backdrop-filter: blur(15px);
+            z-index: 900; /* 低于大图预览，高于背景 */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            overflow-y: auto;
+            padding: 20px;
+            padding-top: 80px; /* 留出顶部空间 */
+            padding-bottom: 50px;
+        }
+        #gallery-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .gallery-close {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255, 105, 180, 0.2);
+            border: 2px solid rgba(255, 182, 193, 0.8);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 901;
+            box-shadow: 0 0 10px #ff69b4;
+            backdrop-filter: blur(4px);
+        }
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .gallery-grid img {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid rgba(255, 182, 193, 0.4);
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.2);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .gallery-grid img:active {
+            transform: scale(0.95);
+        }
+        .gallery-title {
+            text-align: center;
+            color: #ffb6c1;
+            font-size: 20px;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px #ffb6c1;
+        }
+
+        /* 开场遮罩弹窗 */
+        #welcome-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(26, 11, 28, 0.9);
+            backdrop-filter: blur(10px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 0.8s ease;
+        }
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 182, 193, 0.3);
+            border-radius: 20px;
+            padding: 40px 30px;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.2);
+            animation: float 3s ease-in-out infinite;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            z-index: 1000;
-            transition: opacity 0.5s ease;
-            backdrop-filter: blur(8px);
+            min-width: 280px;
         }
-
-        .tip-card {
-            background: rgba(255, 255, 255, 0.08);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            padding: 30px 40px;
-            border-radius: 20px;
-            text-align: center;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
-            max-width: 85%;
+        .welcome-card h1 {
+            font-size: 24px;
+            color: #ffb6c1;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #ffb6c1;
         }
-
-        .tip-card h2 {
-            font-size: 18px;
-            color: #ffccd5;
-            margin-bottom: 10px;
-            letter-spacing: 2px;
-        }
-
-        .tip-card p {
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.6);
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
-        .enter-btn {
-            background: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
-            color: #fff;
+        .welcome-btn {
+            background: linear-gradient(45deg, #ff69b4, #ffb6c1);
             border: none;
             padding: 12px 30px;
-            font-size: 15px;
-            border-radius: 30px;
-            letter-spacing: 2px;
+            border-radius: 25px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: bold;
+            box-shadow: 0 0 15px #ff69b4;
             cursor: pointer;
-            box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4);
-            animation: pulseBtn 2s infinite ease-in-out;
+            outline: none;
+            transition: transform 0.2s;
+        }
+        .welcome-btn:active {
+            transform: scale(0.95);
         }
 
-        @keyframes pulseBtn {
-            0%, 100% { transform: scale(1); box-shadow: 0 5px 20px rgba(255, 117, 140, 0.4); }
-            50% { transform: scale(1.05); box-shadow: 0 5px 25px rgba(255, 117, 140, 0.7); }
+        /* 进度条样式 */
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 10px;
+            overflow: hidden;
+            display: none;
+            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #ff69b4, #ffb6c1);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(255, 105, 180, 0.8);
         }
 
-        /* 左上角可点击跳转的链接样式（保留极淡视觉） */
-        .top-corner-link {
-            position: fixed;
-            top: 10px;
-            left: 15px;
-            font-size: 11px;
-            color: rgba(255, 255, 255, 0.35);
-            z-index: 10;
-            text-decoration: none;
-            letter-spacing: 1px;
-            transition: color 0.3s;
-        }
-
-        .top-corner-link:hover {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        /* 音乐悬浮部件 */
-        .music-btn {
-            position: fixed;
-            bottom: 15px;
-            right: 15px;
-            width: 38px;
-            height: 38px;
-            background: rgba(255, 255, 255, 0.12);
-            border: 1px solid rgba(255, 255, 255, 0.25);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            backdrop-filter: blur(4px);
-            cursor: pointer;
-        }
-
-        .music-btn.playing {
-            animation: rotateVinyl 4s linear infinite;
-        }
-
-        @keyframes rotateVinyl {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .music-btn svg {
-            width: 16px;
-            height: 16px;
-            fill: #fff;
-        }
-
-        /* 弹窗看图 */
-        #modal {
-            position: fixed;
+        /* 漂浮照片容器 */
+        #album-container {
+            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(20, 15, 25, 0.95);
-            z-index: 500;
+            z-index: 50;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .photo-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 120px;
+            height: 160px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 182, 193, 0.6);
+            border-radius: 12px;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.4);
+            padding: 4px;
+            cursor: pointer;
+            pointer-events: auto;
+            will-change: transform;
+            backdrop-filter: blur(2px);
+        }
+        .photo-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+            pointer-events: none;
+        }
+
+        /* 大图查看器 */
+        #lightbox {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
-
-        #modal.active {
+        #lightbox.active {
             opacity: 1;
             pointer-events: auto;
         }
-
-        .modal-content-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        #lightbox img {
+            max-width: 90%;
+            max-height: 80%;
+            border-radius: 15px;
+            border: 3px solid rgba(255, 182, 193, 0.8);
+            box-shadow: 0 0 30px rgba(255, 105, 180, 0.6);
+            pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+        .lb-tip {
+            position: absolute;
+            bottom: 15%;
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            pointer-events: none;
         }
 
-        .modal-image {
-            max-width: 92%;
-            max-height: 85vh;
-            border-radius: 12px;
-            object-fit: contain;
-            box-shadow: 0 5px 30px rgba(0,0,0,0.6);
-        }
-
-        .modal-tip {
+        /* 背景音乐按钮 */
+        #bgm-btn {
             position: absolute;
             bottom: 30px;
-            left: 0;
-            width: 100%;
-            text-align: center;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.4);
-            letter-spacing: 1px;
-            pointer-events: none;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(255, 105, 180, 0.2);
+            border: 2px solid #ffb6c1;
+            box-shadow: 0 0 12px #ff69b4;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            pointer-events: auto;
+            backdrop-filter: blur(4px);
+        }
+        .spin {
+            animation: spin 3s linear infinite;
         }
 
-        #particle-canvas {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 99;
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes float {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0); }
         }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
-    <div class="starfield" id="starfield"></div>
-    <canvas id="particle-canvas"></canvas>
+    <!-- 顶部左侧按钮 (已修改为全部照片) -->
+    <div class="fixed-ui top-left" id="ui-top-left">
+        <a href="#" id="ui-link"></a>
+    </div>
+    <div class="fixed-ui bottom-center" id="ui-bottom"></div>
+
+    <canvas id="bg-canvas"></canvas>
+    <div id="album-container"></div>
+    <canvas id="fx-canvas"></canvas>
+
+    <div id="bgm-btn" class="spin">🎵</div>
+    <audio id="bgm-audio" loop preload="auto"></audio>
+
+    <!-- 照片墙网格弹窗 -->
+    <div id="gallery-overlay">
+        <div class="gallery-close" id="gallery-close">×</div>
+        <div class="gallery-title">✨ 星河记忆 ✨</div>
+        <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+
+    <!-- 大图查看器 -->
+    <div id="lightbox">
+        <img id="lb-img" src="" alt="大图" />
+        <div class="lb-tip">滑动切换 · 点击空白关闭</div>
+    </div>
+
+    <!-- 开场弹窗 -->
+    <div id="welcome-overlay">
+        <div class="welcome-card">
+            <h1>七夕浪漫星河</h1>
+            <p style="font-size: 14px; color: #ffb6c1; margin-bottom: 20px;" id="welcome-tip">请开启声音，获取最佳体验</p>
+            <button class="welcome-btn" id="enter-btn">开启浪漫相册</button>
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
+<script>
+/**
+ * ==========================================
+ * 全局配置区
+ * ==========================================
+ */
+const CONFIG = {
+    github: {
+        user: 'JUDIAO417',    // 你的 GitHub 用户名
+        repo: 'qixijie',      // 你的仓库名
+        branch: 'main',       // 分支名
+        path: 'yl'            // 照片文件夹路径
+    },
+    fallbackImages: [
+        'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=400&q=80',
+        'https://images.unsplash.com/photo-1494774157365-9e04c6720e47?auto=format&fit=crop&w=400&q=80',
+        'https://images.unsplash.com/photo-1518049362265-d5b2a6467637?auto=format&fit=crop&w=400&q=80',
+        'https://images.unsplash.com/photo-1522031128362-e61295b9d375?auto=format&fit=crop&w=400&q=80'
+    ],
+    bgmUrl: 'https://cdn.jsdelivr.net/gh/JUDIAO417/qixijie@main/yy/bgm.mp3', 
+    texts: {
+        topLeft: '❤️ 全部照片', // 文案已修改
+        topLeftLink: '#',
+        bottom: '🌌 遇见你，是浩瀚星河里最浪漫的奇迹 🌌'
+    }
+};
+
+let allImages = [];
+let uniqueImages = []; // 用于存放去重后的照片，供给照片墙使用
+let isPaused = false; 
+let photoObjects = []; 
+const TOTAL_PHOTOS = 16;
+let cooldownMap = new Map(); 
+
+document.getElementById('ui-link').innerText = CONFIG.texts.topLeft;
+document.getElementById('ui-link').href = CONFIG.texts.topLeftLink;
+document.getElementById('ui-bottom').innerText = CONFIG.texts.bottom;
+document.getElementById('bgm-audio').src = CONFIG.bgmUrl;
+
+const progressBar = document.getElementById('progress-bar');
+const welcomeTip = document.getElementById('welcome-tip');
+const galleryOverlay = document.getElementById('gallery-overlay');
+const galleryGrid = document.getElementById('gallery-grid');
+const galleryClose = document.getElementById('gallery-close');
+const uiLink = document.getElementById('ui-link');
+
+/**
+ * ==========================================
+ * 核心逻辑一：带进度条的预加载算法
+ * ==========================================
+ */
+async function loadImages() {
+    allImages = [];
+    let low = 1;
+    let high = 500; 
+    let maxCount = 0;
     
-    <!-- 左上角可点击跳转的超链接 -->
-    <a href="https://www.qixijieaini.top/admin.html" class="top-corner-link" target="_blank">七夕致我们</a>
+    let step = 0;
+    const maxSteps = 9; 
 
-    <div id="meteors-container"></div>
-    <div class="footer-quote">愿我们岁岁年年，共赏浩瀚星河。</div>
+    welcomeTip.innerText = '正在计算星河轨迹 (探测照片数量)...';
 
-    <div class="music-btn" id="music-btn" title="音乐开关">
-        <svg viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
-    </div>
+    while (low <= high) {
+        step++;
+        let percent = Math.min((step / maxSteps) * 60, 60);
+        progressBar.style.width = percent + '%';
 
-    <div id="fullscreen-tip">
-        <div class="tip-card">
-            <h2>✨-七夕相册-✨</h2>
-            <p>点击下方按钮进入</p>
-            <button class="enter-btn" id="enter-btn">开启相册</button>
-        </div>
-    </div>
-
-    <div id="modal">
-        <div class="modal-content-wrapper" id="modal-wrapper">
-            <img class="modal-image" id="modal-img" src="" alt="Photo">
-            <div class="modal-tip">左滑/右滑切换 · 点击空白关闭</div>
-        </div>
-    </div>
-
-    <audio id="bgm" src="./yy/bgm.mp3" loop preload="auto"></audio>
-
-    <script>
-        const GITHUB_USER = "JUDIAO417";
-        const REPO_NAME = "qixijie";
-
-        let photoUrls = [];
-        const VISIBLE_COUNT = 16; 
-        const DURATION_MIN = 12;
-        const DURATION_MAX = 18;
+        let mid = Math.floor((low + high) / 2);
+        let testUrl = `https://raw.githubusercontent.com/${CONFIG.github.user}/${CONFIG.github.repo}/${CONFIG.github.branch}/${CONFIG.github.path}/${mid}.jpg`;
         
-        const photoCooldownMap = {}; 
-        const COOLDOWN_TIME = 20 * 1000;
-
-        const meteorsContainer = document.getElementById('meteors-container');
-        const styleSheet = document.styleSheets[0];
-        const photoPool = [];
-
-        // 星空背景初始化
-        const starfield = document.getElementById('starfield');
-        for (let i = 0; i < 45; i++) {
-            const star = document.createElement('div');
-            star.className = 'bg-star';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.left = Math.random() * 100 + '%';
-            const size = Math.random() * 1.5 + 0.5 + 'px';
-            star.style.width = size;
-            star.style.height = size;
-            star.style.animationDelay = Math.random() * 3 + 's';
-            starfield.appendChild(star);
-        }
-
-        async function fetchPhotosFromGitHub() {
-            try {
-                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl`;
-                const res = await fetch(url);
-                if (res.ok) {
-                    const data = await res.json();
-                    photoUrls = data
-                        .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
-                        .sort((a, b) => {
-                            let numA = parseInt(a.name) || 0;
-                            let numB = parseInt(b.name) || 0;
-                            return numA - numB;
-                        })
-                        .map(item => item.download_url);
-                }
-            } catch (err) {
-                console.log("API fetch failed");
-            }
-
-            if (photoUrls.length === 0) {
-                for (let i = 1; i <= 20; i++) {
-                    photoUrls.push(`./yl/${i}.jpg`);
-                }
-            }
-
-            initMeteorRain();
-        }
-
-        fetchPhotosFromGitHub();
-
-        let currentModalIndex = 0;
-
-        function initMeteorRain() {
-            if (window.isMeteorInitialized) return;
-            window.isMeteorInitialized = true;
-
-            for (let i = 0; i < VISIBLE_COUNT; i++) {
-                const item = document.createElement('div');
-                item.className = 'meteor-photo';
-                const img = document.createElement('img');
-                img.loading = 'lazy';
-                item.appendChild(img);
-                item.addEventListener('contextmenu', e => e.preventDefault());
-                
-                item.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const currentUrl = img.getAttribute('data-src');
-                    const realIndex = photoUrls.indexOf(currentUrl);
-                    openModal(realIndex !== -1 ? realIndex : 0);
-                });
-
-                meteorsContainer.appendChild(item);
-                photoPool.push(item);
-            }
-
-            photoPool.forEach((item, index) => {
-                const delay = (index * (DURATION_MAX / VISIBLE_COUNT) * 0.6) * 1000;
-                setTimeout(() => {
-                    assignNextSmartPhoto(item, true);
-                }, delay);
-
-                item.addEventListener('animationend', (e) => {
-                    if (e.animationName.startsWith('meteorMove_')) {
-                        assignNextSmartPhoto(item, false);
-                    }
-                });
-            });
-        }
-
-        function assignNextSmartPhoto(item, isInitial) {
-            const now = Date.now();
-            let availablePhotos = photoUrls.filter(url => {
-                const lastTime = photoCooldownMap[url] || 0;
-                return (now - lastTime) > COOLDOWN_TIME;
-            });
-
-            if (availablePhotos.length === 0) {
-                availablePhotos = photoUrls;
-            }
-
-            const randomUrl = availablePhotos[Math.floor(Math.random() * availablePhotos.length)];
-            photoCooldownMap[randomUrl] = Date.now();
-
-            assignAndAnimate(item, randomUrl, isInitial);
-        }
-
-        function assignAndAnimate(item, url, isInitial) {
-            const img = item.querySelector('img');
-            img.src = url;
-            img.setAttribute('data-src', url);
-
-            item.style.animation = 'none';
-            void item.offsetWidth;
-
-            const duration = Math.random() * (DURATION_MAX - DURATION_MIN) + DURATION_MIN;
-            const startX = Math.random() * 95 - 5; 
-            const startY = isInitial ? (Math.random() * 80 - 10) : (-30 - Math.random() * 10);
-            const endX = startX + (Math.random() * 30 - 15);
-            const endY = 115;
-            const rotate = Math.random() * 14 - 7;
-
-            const animName = `meteorMove_${Math.random().toString(36).substr(2, 9)}`;
-            const keyframes = `
-                @keyframes ${animName} {
-                    0% { transform: translate(${startX}vw, ${startY}vh) rotate(${rotate}deg); opacity: ${isInitial ? 1 : 0}; }
-                    15% { opacity: 1; }
-                    85% { opacity: 1; }
-                    100% { transform: translate(${endX}vw, ${endY}vh) rotate(${rotate + 4}deg); opacity: 0; }
-                }
-            `;
-            styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
-            
-            const activeDuration = isInitial ? (duration * (Math.random() * 0.5 + 0.5)) : duration;
-            item.style.animation = `${animName} ${activeDuration}s linear infinite`;
-        }
-
-        // 弹窗逻辑
-        const modal = document.getElementById('modal');
-        const modalImg = document.getElementById('modal-img');
-
-        function openModal(index) {
-            currentModalIndex = index >= 0 ? index : 0;
-            modalImg.src = photoUrls[currentModalIndex];
-            modal.classList.add('active');
-            document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
-        }
-
-        function closeModal() {
-            modal.classList.remove('active');
-            document.querySelectorAll('.meteor-photo').forEach(el => el.classList.remove('paused'));
-        }
-
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.id === 'modal-wrapper') closeModal();
-        });
-
-        // 左右滑动切换照片逻辑修复
-        let touchStartX = 0;
-        modal.addEventListener('touchstart', e => { 
-            touchStartX = e.changedTouches[0].screenX; 
-        }, {passive: true});
-
-        modal.addEventListener('touchend', e => {
-            let diff = e.changedTouches[0].screenX - touchStartX;
-            if (Math.abs(diff) > 50) {
-                if (diff < 0) {
-                    // 向左滑动，下一张
-                    currentModalIndex = (currentModalIndex + 1) % photoUrls.length;
-                } else {
-                    // 向右滑动，上一张
-                    currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
-                }
-                modalImg.src = photoUrls[currentModalIndex];
-            }
-        }, {passive: true});
-
-        // 全屏按钮绑定事件
-        const fullscreenTip = document.getElementById('fullscreen-tip');
-        const enterBtn = document.getElementById('enter-btn');
-        const musicBtn = document.getElementById('music-btn');
-        const bgm = document.getElementById('bgm');
-        let isMusicPlaying = false;
-
-        function unlockExperience(e) {
-            e.preventDefault();
-            e.stopPropagation();
-
-            fullscreenTip.style.opacity = '0';
-            setTimeout(() => fullscreenTip.remove(), 500);
-
-            const docEl = document.documentElement;
-            const requestFS = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.mozRequestFullScreen || docEl.msRequestFullscreen;
-            if (requestFS) {
-                requestFS.call(docEl).catch(err => console.log("Fullscreen denied:", err));
-            }
-
-            if (!isMusicPlaying) {
-                bgm.volume = 0.25;
-                bgm.play().then(() => {
-                    isMusicPlaying = true;
-                    musicBtn.classList.add('playing');
-                }).catch(err => console.log("Audio play error:", err));
-            }
-        }
-
-        enterBtn.addEventListener('click', unlockExperience);
-        enterBtn.addEventListener('touchend', unlockExperience);
-
-        musicBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (isMusicPlaying) {
-                bgm.pause();
-                isMusicPlaying = false;
-                musicBtn.classList.remove('playing');
+        try {
+            let res = await fetch(testUrl, { method: 'HEAD' });
+            if (res.ok) {
+                maxCount = mid; 
+                low = mid + 1;  
             } else {
-                bgm.volume = 0.25;
-                bgm.play().then(() => {
-                    isMusicPlaying = true;
-                    musicBtn.classList.add('playing');
-                });
+                high = mid - 1; 
             }
-        });
-
-        // 彩蛋双指爱心
-        const canvas = document.getElementById('particle-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length === 2) {
-                for (let i = 0; i < 25; i++) {
-                    particles.push({
-                        x: window.innerWidth / 2, y: window.innerHeight / 2,
-                        size: Math.random() * 8 + 6,
-                        speedX: (Math.random() - 0.5) * 6,
-                        speedY: (Math.random() - 0.5) * 6 - 2,
-                        opacity: 1, color: Math.random() > 0.5 ? '#ffb6c1' : '#ff69b4',
-                        life: Math.random() * 40 + 40
-                    });
-                }
-                if (isMusicPlaying) {
-                    bgm.volume = 0.4;
-                    setTimeout(() => { if (isMusicPlaying) bgm.volume = 0.25; }, 3000);
-                }
-            }
-        });
-
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach((p, index) => {
-                p.x += p.speedX; p.y += p.speedY; p.opacity -= 1 / p.life;
-                ctx.save();
-                ctx.globalAlpha = Math.max(0, p.opacity);
-                ctx.fillStyle = p.color;
-                ctx.font = `${p.size}px sans-serif`;
-                ctx.fillText('❤', p.x, p.y);
-                ctx.restore();
-                if (p.opacity <= 0) particles.splice(index, 1);
-            });
-            requestAnimationFrame(animateParticles);
+        } catch (e) {
+            high = mid - 1;
         }
-        animateParticles();
-    </script>
+    }
+
+    if (maxCount === 0) {
+        allImages = CONFIG.fallbackImages;
+    } else {
+        for (let i = 1; i <= maxCount; i++) {
+            allImages.push(`https://cdn.jsdelivr.net/gh/${CONFIG.github.user}/${CONFIG.github.repo}@${CONFIG.github.branch}/${CONFIG.github.path}/${i}.jpg`);
+        }
+    }
+
+    // 保存一份不重复的照片数组给照片墙用
+    uniqueImages = [...allImages];
+
+    while (allImages.length < TOTAL_PHOTOS && allImages.length > 0) {
+        allImages = allImages.concat(allImages);
+    }
+
+    welcomeTip.innerText = '正在点亮浪漫星光 (预加载照片)...';
+    progressBar.style.width = '65%';
+
+    let preloadCount = Math.min(allImages.length, TOTAL_PHOTOS);
+    let loadedCount = 0;
+
+    await new Promise((resolve) => {
+        if(preloadCount === 0) resolve();
+        for(let i = 0; i < preloadCount; i++) {
+            const img = new Image();
+            img.src = allImages[i];
+            
+            img.onload = img.onerror = () => {
+                loadedCount++;
+                let p = 65 + (loadedCount / preloadCount) * 35;
+                progressBar.style.width = p + '%';
+                
+                if(loadedCount === preloadCount) {
+                    resolve();
+                }
+            };
+        }
+    });
+
+    progressBar.style.width = '100%';
+    welcomeTip.innerText = '加载完成！';
+}
+
+function getNextImageIndex() {
+    const now = Date.now();
+    for (let [idx, time] of cooldownMap.entries()) {
+        if (now - time > 8000) {
+            cooldownMap.delete(idx);
+        }
+    }
+    let pool = allImages.map((_, i) => i).filter(i => !cooldownMap.has(i));
+    
+    if (pool.length < Math.max(1, allImages.length / 2)) {
+        pool = allImages.map((_, i) => i);
+    }
+    
+    const pickedIdx = pool[Math.floor(Math.random() * pool.length)];
+    cooldownMap.set(pickedIdx, now);
+    return pickedIdx;
+}
+
+/**
+ * ==========================================
+ * 核心逻辑二：照片墙 (Gallery)
+ * ==========================================
+ */
+uiLink.addEventListener('click', (e) => {
+    e.preventDefault();
+    
+    // 渲染网格照片
+    galleryGrid.innerHTML = '';
+    uniqueImages.forEach((src) => {
+        const img = document.createElement('img');
+        img.src = src;
+        // 点击照片墙里的图，直接打开放大查看器
+        img.addEventListener('click', () => {
+            // 在 allImages 中找到索引，传给大图查看器
+            openLightbox(allImages.indexOf(src));
+        });
+        galleryGrid.appendChild(img);
+    });
+
+    galleryOverlay.classList.add('active');
+    isPaused = true; // 打开照片墙时暂停背景动画
+});
+
+galleryClose.addEventListener('click', () => {
+    galleryOverlay.classList.remove('active');
+    // 关闭时恢复背景动画
+    isPaused = false;
+});
+
+
+/**
+ * ==========================================
+ * 以下为动画、大图查看器等常规逻辑
+ * ==========================================
+ */
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+    bgCanvas.width = window.innerWidth;
+    bgCanvas.height = window.innerHeight;
+    stars = [];
+    for (let i = 0; i < 150; i++) {
+        stars.push({
+            x: Math.random() * bgCanvas.width,
+            y: Math.random() * bgCanvas.height,
+            r: Math.random() * 1.5 + 0.5,
+            alpha: Math.random(),
+            speed: (Math.random() - 0.5) * 0.02
+        });
+    }
+}
+
+function drawStars() {
+    bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+    bgCtx.fillStyle = '#fff';
+    stars.forEach(s => {
+        s.alpha += s.speed;
+        if (s.alpha <= 0 || s.alpha >= 1) s.speed = -s.speed;
+        bgCtx.globalAlpha = Math.max(0, Math.min(1, s.alpha));
+        bgCtx.beginPath();
+        bgCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        bgCtx.fill();
+    });
+    requestAnimationFrame(drawStars);
+}
+
+window.addEventListener('resize', initStars);
+initStars();
+drawStars();
+
+const container = document.getElementById('album-container');
+
+function createPhotoCard(idx) {
+    const el = document.createElement('div');
+    el.className = 'photo-card';
+    const img = document.createElement('img');
+    img.src = allImages[idx];
+    
+    img.onerror = function() {
+        this.src = CONFIG.fallbackImages[0];
+    };
+
+    el.appendChild(img);
+    container.appendChild(el);
+    
+    el.addEventListener('click', () => openLightbox(idx));
+    
+    return {
+        el,
+        imgNode: img,
+        x: Math.random() * window.innerWidth,
+        y: -200 - Math.random() * 500,
+        speedY: Math.random() * 1.0 + 0.8,
+        rot: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 1.5,
+        imgIdx: idx
+    };
+}
+
+function initAlbum() {
+    for (let i = 0; i < TOTAL_PHOTOS; i++) {
+        const idx = getNextImageIndex();
+        photoObjects.push(createPhotoCard(idx));
+    }
+    animateAlbum();
+}
+
+function animateAlbum() {
+    if (!isPaused) {
+        const w = window.innerWidth;
+        const h = window.innerHeight;
+        photoObjects.forEach(p => {
+            p.y += p.speedY;
+            p.rot += p.rotSpeed;
+            if (p.y > h + 50) {
+                p.y = -200;
+                p.x = Math.random() * w;
+                p.speedY = Math.random() * 1.0 + 0.8;
+                p.rotSpeed = (Math.random() - 0.5) * 1.5;
+                p.imgIdx = getNextImageIndex();
+                p.imgNode.src = allImages[p.imgIdx];
+            }
+            p.el.style.transform = `translate3d(${p.x}px, ${p.y}px, 0) rotateZ(${p.rot}deg)`;
+        });
+    }
+    requestAnimationFrame(animateAlbum);
+}
+
+const lightbox = document.getElementById('lightbox');
+const lbImg = document.getElementById('lb-img');
+let currentLbIndex = 0;
+let touchStartX = 0;
+
+function openLightbox(idx) {
+    currentLbIndex = idx;
+    lbImg.src = allImages[idx];
+    lightbox.classList.add('active');
+    isPaused = true;
+}
+
+// 优化：从大图关闭时，如果网格墙没开，才恢复背景动画
+lightbox.addEventListener('click', (e) => {
+    if (e.target === lightbox || e.target.classList.contains('lb-tip')) {
+        lightbox.classList.remove('active');
+        if (!galleryOverlay.classList.contains('active')) {
+            isPaused = false;
+        }
+    }
+});
+
+lightbox.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+});
+lightbox.addEventListener('touchend', (e) => {
+    const touchEndX = e.changedTouches[0].clientX;
+    const diff = touchEndX - touchStartX;
+    if (Math.abs(diff) > 50) {
+        if (diff > 0) {
+            currentLbIndex = (currentLbIndex - 1 + allImages.length) % allImages.length;
+        } else {
+            currentLbIndex = (currentLbIndex + 1) % allImages.length;
+        }
+        lbImg.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            lbImg.src = allImages[currentLbIndex];
+            lbImg.style.transform = 'scale(1)';
+        }, 150);
+    }
+});
+
+const fxCanvas = document.getElementById('fx-canvas');
+const fxCtx = fxCanvas.getContext('2d');
+let hearts = [];
+const audio = document.getElementById('bgm-audio');
+
+function resizeFxCanvas() {
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeFxCanvas);
+resizeFxCanvas();
+
+function createHeartParticles(x, y) {
+    for (let i = 0; i < 40; i++) {
+        hearts.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 15,
+            vy: (Math.random() - 0.5) * 15,
+            life: 1.0,
+            decay: Math.random() * 0.02 + 0.015,
+            scale: Math.random() * 1.5 + 0.5
+        });
+    }
+}
+
+function drawHearts() {
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    for (let i = hearts.length - 1; i >= 0; i--) {
+        let p = hearts[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= p.decay;
+        
+        if (p.life <= 0) {
+            hearts.splice(i, 1);
+            continue;
+        }
+        
+        fxCtx.save();
+        fxCtx.translate(p.x, p.y);
+        fxCtx.scale(p.scale * p.life, p.scale * p.life);
+        fxCtx.globalAlpha = p.life;
+        fxCtx.fillStyle = '#ff69b4';
+        
+        fxCtx.beginPath();
+        fxCtx.moveTo(0, 0);
+        fxCtx.bezierCurveTo(-5, -5, -10, 5, 0, 15);
+        fxCtx.bezierCurveTo(10, 5, 5, -5, 0, 0);
+        fxCtx.fill();
+        fxCtx.restore();
+    }
+    requestAnimationFrame(drawHearts);
+}
+drawHearts();
+
+window.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 2) {
+        const x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        createHeartParticles(x, y);
+        
+        const originalVol = audio.volume;
+        audio.volume = 1.0;
+        setTimeout(() => {
+            let vol = 1.0;
+            let fade = setInterval(() => {
+                vol -= 0.05;
+                if(vol <= originalVol) {
+                    audio.volume = originalVol;
+                    clearInterval(fade);
+                } else {
+                    audio.volume = vol;
+                }
+            }, 100);
+        }, 3000);
+    }
+});
+
+const enterBtn = document.getElementById('enter-btn');
+const welcomeOverlay = document.getElementById('welcome-overlay');
+const progressContainer = document.getElementById('progress-container');
+const bgmBtn = document.getElementById('bgm-btn');
+
+function requestFullScreen() {
+    const el = document.documentElement;
+    if(el.requestFullscreen) { el.requestFullscreen(); }
+    else if(el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
+}
+
+enterBtn.addEventListener('click', async () => {
+    enterBtn.style.display = 'none';
+    progressContainer.style.display = 'block';
+
+    audio.volume = 0.5;
+    audio.play().catch(e => console.log("浏览器限制自动播放"));
+
+    await loadImages();
+
+    setTimeout(() => {
+        welcomeOverlay.style.opacity = '0';
+        setTimeout(() => { welcomeOverlay.style.display = 'none'; }, 800);
+        
+        try { requestFullScreen(); } catch(e){}
+        initAlbum();
+    }, 500);
+});
+
+bgmBtn.addEventListener('click', () => {
+    if (audio.paused) {
+        audio.play();
+        bgmBtn.classList.add('spin');
+    } else {
+        audio.pause();
+        bgmBtn.classList.remove('spin');
+    }
+});
+</script>
 </body>
 </html>
