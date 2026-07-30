@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>浪漫星河相册</title>
+    <title>星河相册</title>
     <style>
         /* 基础样式重置与防触控 */
         * {
@@ -350,9 +350,9 @@
     <!-- 开场弹窗 -->
     <div id="welcome-overlay">
         <div class="welcome-card">
-            <h1>七夕浪漫星河</h1>
-            <p style="font-size: 14px; color: #ffb6c1; margin-bottom: 20px;" id="welcome-tip">请开启声音，获取最佳体验</p>
-            <button class="welcome-btn" id="enter-btn">开启浪漫相册</button>
+            <h1>七夕|星河</h1>
+            <p style="font-size: 14px; color: #ffb6c1; margin-bottom: 20px;" id="welcome-tip">ξ( ✿＞◡❛)</p>
+            <button class="welcome-btn" id="enter-btn">开启相册</button>
             <div class="progress-container" id="progress-container">
                 <div class="progress-bar" id="progress-bar"></div>
             </div>
@@ -424,7 +424,7 @@ async function loadImages() {
     let step = 0;
     const maxSteps = 9; 
 
-    welcomeTip.innerText = '正在计算星河轨迹 (探测照片数量)...';
+    welcomeTip.innerText = '正在计算星河轨迹 (其实是加载嘻嘻)...';
 
     while (low <= high) {
         step++;
@@ -463,7 +463,7 @@ async function loadImages() {
         allImages = allImages.concat(allImages);
     }
 
-    welcomeTip.innerText = '正在点亮浪漫星光 (国内节点全速加载)...';
+    welcomeTip.innerText = '正在点亮浪漫星光 (CDN加载中)...';
     progressBar.style.width = '65%';
 
     let preloadCount = Math.min(allImages.length, TOTAL_PHOTOS);
