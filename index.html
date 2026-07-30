@@ -308,7 +308,6 @@
         const REPO_NAME = "qixijie";
 
         let photoUrls = [];
-        let highResUrls = []; // 对应原图列表（支持点开看高清原图 zp/ 文件夹）
         const VISIBLE_COUNT = 16; 
         const DURATION_MIN = 12;
         const DURATION_MAX = 18;
@@ -334,18 +333,35 @@
             starfield.appendChild(star);
         }
 
-        // 核心修改：针对 900+ 张照片设计的安全加载机制
-        // 采用编号序列生成器，支持 1 到 900 张照片秒开、无 API 数量限制、杜绝白屏
-        function initPhotoList() {
-            const MAX_PHOTOS = 900; // 你以后如果超过900，把这里改大即可
-            for (let i = 1; i <= MAX_PHOTOS; i++) {
-                photoUrls.push(`./yl/${i}.jpg`);
-                highResUrls.push(`./zp/${i}.jpg`);
+        async function fetchPhotosFromGitHub() {
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_USER}/${REPO_NAME}/contents/yl`;
+                const res = await fetch(url);
+                if (res.ok) {
+                    const data = await res.json();
+                    photoUrls = data
+                        .filter(item => /\.(jpg|jpeg|png|webp)$/i.test(item.name))
+                        .sort((a, b) => {
+                            let numA = parseInt(a.name) || 0;
+                            let numB = parseInt(b.name) || 0;
+                            return numA - numB;
+                        })
+                        .map(item => item.download_url);
+                }
+            } catch (err) {
+                console.log("API fetch failed");
             }
+
+            if (photoUrls.length === 0) {
+                for (let i = 1; i <= 20; i++) {
+                    photoUrls.push(`./yl/${i}.jpg`);
+                }
+            }
+
             initMeteorRain();
         }
 
-        initPhotoList();
+        fetchPhotosFromGitHub();
 
         let currentModalIndex = 0;
 
@@ -408,11 +424,6 @@
             img.src = url;
             img.setAttribute('data-src', url);
 
-            // 容错保护：如果编号对应的照片还未上传，自动隐藏，绝对不影响其他照片流星雨飘落
-            img.onerror = () => {
-                img.style.display = 'none';
-            };
-
             item.style.animation = 'none';
             void item.offsetWidth;
 
@@ -438,13 +449,13 @@
             item.style.animation = `${animName} ${activeDuration}s linear infinite`;
         }
 
-        // 弹窗逻辑（支持点开看原图 zp/ 文件夹的高清图）
+        // 弹窗逻辑
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modal-img');
 
         function openModal(index) {
             currentModalIndex = index >= 0 ? index : 0;
-            modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
+            modalImg.src = photoUrls[currentModalIndex];
             modal.classList.add('active');
             document.querySelectorAll('.meteor-photo').forEach(el => el.classList.add('paused'));
         }
@@ -474,7 +485,7 @@
                     // 向右滑动，上一张
                     currentModalIndex = (currentModalIndex - 1 + photoUrls.length) % photoUrls.length;
                 }
-                modalImg.src = highResUrls[currentModalIndex] || photoUrls[currentModalIndex];
+                modalImg.src = photoUrls[currentModalIndex];
             }
         }, {passive: true});
 
